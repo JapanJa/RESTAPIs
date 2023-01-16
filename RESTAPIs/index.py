@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask,request,jsonify
 
 app = Flask(__name__)
 
@@ -8,78 +8,81 @@ countries = [
     {"id": "3", "name": "Japan", "capital": "Tokyo"}
 ]
 
-def find_country_by_id(id):
-    for country in countries:
-        if country['id'] == id:
-            return country
-    return None
+def _find_next_id(id):
+    data = [x for x in countries if x['id']==id]
+    return data
 
 @app.route('/country', methods=['GET'])
-def get_all_countries():
+def get_country():
     return jsonify(countries)
 
+#get - by id
 @app.route('/country/<id>', methods=['GET'])
-def get_country(id):
-    data = find_country_by_id(id)
-    if data:
-        return jsonify(data)
-    else:
-        return jsonify({'error': 'Country not found'}), 404
+def get_country_id(id):
+    data = _find_next_id(id)
+    return jsonify(data)
 
+#Post country
 @app.route('/country', methods=['POST'])
 def post_country():
-    data = request.get_json()
-    id = data.get('id')
-    name = data.get('name')
-    capital = data.get('capital')
+    id = request.form.get('id')
+    name = request.form.get('name')
+    capital = request.form.get('capital')
 
     new_data = {
-        'id': id,
-        'name': name,
-        'capital': capital
+        "id": id,
+        "name": name,
+        "capital": capital
     }
 
-    if find_country_by_id(id):
-        return jsonify({'error': 'Bad Request'}), 400
+    if (_find_next_id(id)):
+        return {"eror" : "Bad Request"}, id
     else:
         countries.append(new_data)
         return jsonify(countries)
 
+#PUT
 @app.route('/country/<id>', methods=['PUT'])
-def update_country(id):
-    data = find_country_by_id(id)
-    if not data:
-        return jsonify({'error': 'Country not found'}), 404
-    
-    update_data = request.get_json()
-    data['name'] = update_data.get('name')
-    data['capital'] = update_data.get('capital')
+def put_country(id):
+    global countries
+    name = request.form.get('name')
+    capital = request.form.get('capital')
 
-    return jsonify(data)
+    update_data = {
+        "name": name,
+        "capital": capital
+    }
 
-@app.route('/country/<id>', methods=['PATCH'])
-def patch_country(id):
-    data = find_country_by_id(id)
-    if not data:
-        return jsonify({'error': 'Country not found'}), 404
-    
-    patch_data = request.get_json()
-    if 'name' in patch_data:
-        data['name'] = patch_data.get('name')
-    if 'capital' in patch_data:
-        data['capital'] = patch_data.get('capital')
+    for country in countries:
+        if id == country.get("id"):
+            country["name"] = str(name)
+            country['capital'] = str(capital)
+            return jsonify(countries)
+        else:
+            return "error", 404
 
-    return jsonify(data)
+#PATCH
+@app.route('/country/<id>', methods=["PATCH"])
+def patch_country(id: int):
+    country = _find_next_id(id)
+    if country is None:
+        return jsonify({'error':'Country not found!'}),404
 
-@app.route('/country/<id>', methods=['DELETE'])
+    updated_country = json.loads(request.data)
+    country.update(updated_country)
+    return jsonify(countries)
+
+#Delete country
+@app.route('/country/<id>', methods = ['DELETE'])
 def delete_country(id):
-    data = find_country_by_id(id)
+
+    data = _find_next_id(id)
     if not data:
-        return jsonify({'error': 'Country not found'}), 404
-    
-    countries.remove(data)
-    return jsonify({'message': 'Country deleted successfully'})
+        return {"error": "Country not found"}, 404
+    else:
+        countries.remove(data[0]) 
+        return "Country deleted succuessfully" ,200
 
 if __name__=='__main__':
-    app.run(host
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
